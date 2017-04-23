@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.4</TargetFramework>
+    <Version>0.7.1.1</Version>
+    <Description />
+    <Authors>Marek Pokorny</Authors>
+    <Company>MpSoft</Company>
+    <Product>Pepi.Find</Product>
+    <Copyright>Copyright 2017 Marek Pokorny</Copyright>
+    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.SqlClient" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pepi.Find.Server.Abstract\Pepi.Find.Server.Abstract.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Server", "Pepi.Find.Server\Pepi.Find.Server.csproj", "{674729C5-BBEA-4A30-B2E0-B674A1013319}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Server.Abstract", "Pepi.Find.Server.Abstract\Pepi.Find.Server.Abstract.csproj", "{2280DBA9-F3BF-4295-840F-02C435D6263D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.SqlRepository", "Pepi.Find.SqlRepository\Pepi.Find.SqlRepository.csproj", "{BF866F72-E5A2-4084-B7DF-A5B898311627}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WebService.Util", "Pepi.Find.WebService.Util\Pepi.Find.WebService.Util.csproj", "{FC39416A-962A-4EE4-A786-EAB03BC436BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WebService", "Pepi.Find.WebService\Pepi.Find.WebService.csproj", "{30B297F7-D5B8-4B05-B838-706CD95523EA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WinDesktop", "Pepi.Find.WinDesktop\Pepi.Find.WinDesktop.csproj", "{2A18F867-AD48-426B-B6F1-13376AD647D5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{674729C5-BBEA-4A30-B2E0-B674A1013319}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{674729C5-BBEA-4A30-B2E0-B674A1013319}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{674729C5-BBEA-4A30-B2E0-B674A1013319}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{674729C5-BBEA-4A30-B2E0-B674A1013319}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2280DBA9-F3BF-4295-840F-02C435D6263D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2280DBA9-F3BF-4295-840F-02C435D6263D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2280DBA9-F3BF-4295-840F-02C435D6263D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2280DBA9-F3BF-4295-840F-02C435D6263D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF866F72-E5A2-4084-B7DF-A5B898311627}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF866F72-E5A2-4084-B7DF-A5B898311627}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF866F72-E5A2-4084-B7DF-A5B898311627}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF866F72-E5A2-4084-B7DF-A5B898311627}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC39416A-962A-4EE4-A786-EAB03BC436BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC39416A-962A-4EE4-A786-EAB03BC436BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC39416A-962A-4EE4-A786-EAB03BC436BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC39416A-962A-4EE4-A786-EAB03BC436BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30B297F7-D5B8-4B05-B838-706CD95523EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30B297F7-D5B8-4B05-B838-706CD95523EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30B297F7-D5B8-4B05-B838-706CD95523EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30B297F7-D5B8-4B05-B838-706CD95523EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
