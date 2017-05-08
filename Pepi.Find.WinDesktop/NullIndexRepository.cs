@@ -13,7 +13,9 @@ namespace Pepi.Find.WinDesktop
 
 		public ISearchQueryBuilder CreateSearchQueryBuilder() => new FakeSearchQueryBuilder();
 
-		public Task SaveIndexItemsAsync(List<IndexItem> indexItems) => Task.CompletedTask;
+		public IDeleteByQueryBuilder CreateDeleteQueryBuilder() => new FakeDeleteQueryBuilder();
+
+		public Task SaveIndexItemsAsync(IEnumerable<IndexItem> indexItems) => Task.CompletedTask;
 
 		class FakeFacetQueryBuilder:IFacetQueryBuilder
 		{
@@ -70,6 +72,32 @@ namespace Pepi.Find.WinDesktop
 				public int Count => 0;
 
 				public void Dispose() { }
+			}
+		}
+
+		class FakeDeleteQueryBuilder:IDeleteByQueryBuilder
+		{
+			public IQueryBuilder AddAnd() => this;
+
+			public void AddExists(string fieldName) { }
+
+			public void AddFullText(string searchWord,string[] inFields) { }
+
+			public IQueryBuilder AddNot() => this;
+
+			public IQueryBuilder AddOr() => this;
+
+			public void AddRange(string fieldName,object valueFrom,bool inclusiveFrom,object valueTo,bool inclusiveTo) { }
+
+			public void AddTerm(string fieldName,object value) { }
+
+			public void AddTerms(string fieldName,object[] values) { }
+
+			public Task<IDeleteByQueryResult> ExecuteAsync() => Task.FromResult((IDeleteByQueryResult)new FakeDeleteByQueryResult());
+
+			class FakeDeleteByQueryResult:IDeleteByQueryResult
+			{
+				public IEnumerable<DeleteResultItem> DeleteResults => Enumerable.Empty<DeleteResultItem>();
 			}
 		}
 	}

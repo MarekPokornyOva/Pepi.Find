@@ -20,8 +20,8 @@ namespace Pepi.Find.Server.Abstract
 
 	public class SearchResultDocument
 	{
-		public virtual long Id { get; set; }
+		public virtual int Id { get; set; }
 		public virtual string LanguageName { get; set; }
-		public virtual List<string> Types { get; } = new List<string>();
+		public virtual IEnumerable<string> Types { get; set; }
 	}
 }

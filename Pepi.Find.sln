@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WebService", "Pep
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WinDesktop", "Pepi.Find.WinDesktop\Pepi.Find.WinDesktop.csproj", "{2A18F867-AD48-426B-B6F1-13376AD647D5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Direct.Cms", "Pepi.Find.Direct.Cms\Pepi.Find.Direct.Cms.csproj", "{CD5D557B-CBB8-4DE9-81B2-A0BABC7E1E58}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Direct", "Pepi.Find.Direct\Pepi.Find.Direct.csproj", "{EC870FE9-BEB9-42D4-8758-9539AB63EC29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,14 @@ Global
 		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A18F867-AD48-426B-B6F1-13376AD647D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD5D557B-CBB8-4DE9-81B2-A0BABC7E1E58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD5D557B-CBB8-4DE9-81B2-A0BABC7E1E58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD5D557B-CBB8-4DE9-81B2-A0BABC7E1E58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD5D557B-CBB8-4DE9-81B2-A0BABC7E1E58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

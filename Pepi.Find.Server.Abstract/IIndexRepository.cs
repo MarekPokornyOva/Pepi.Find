@@ -7,8 +7,9 @@ namespace Pepi.Find.Server.Abstract
 {
 	public interface IIndexRepository
 	{
-		Task SaveIndexItemsAsync(List<IndexItem> indexItems);
+		Task SaveIndexItemsAsync(IEnumerable<IndexItem> indexItems);
 		ISearchQueryBuilder CreateSearchQueryBuilder();
 		IFacetQueryBuilder CreateFacetQueryBuilder();
+		IDeleteByQueryBuilder CreateDeleteQueryBuilder();
 	}
 }

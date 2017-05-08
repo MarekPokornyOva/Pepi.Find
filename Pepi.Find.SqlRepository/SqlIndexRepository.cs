@@ -9,6 +9,7 @@ using System.Collections;
 using System.Linq;
 using System.Text;
 using Pepi.Find.Server.Abstract;
+using System.Data.Common;
 #endregion using
 
 namespace Pepi.Find.SqlRepository
@@ -32,7 +33,7 @@ namespace Pepi.Find.SqlRepository
 		#endregion .ctor & Disponse
 
 		#region SaveIndexItemsAsync
-		public async Task SaveIndexItemsAsync(List<IndexItem> indexItems)
+		public async Task SaveIndexItemsAsync(IEnumerable<IndexItem> indexItems)
 		{
 			foreach (IndexItem item in indexItems)
 			{
@@ -42,7 +43,7 @@ namespace Pepi.Find.SqlRepository
 				{
 					trans=_dbConnection.BeginTransaction();
 
-					long contentId = (long)item.Content.Values.Find(x => x.Key=="ContentLink.ID$$number").Value;
+					int contentId = (int)Convert.ChangeType(item.Content.Values.Find(x => x.Key=="ContentLink.ID$$number").Value,typeof(int));
 
 					using (IDbCommand cmd = _dbConnection.CreateCommand())
 					{
@@ -52,9 +53,9 @@ namespace Pepi.Find.SqlRepository
 						cmd.ExecuteNonQuery();
 					}
 
-					IEnumerable<KeyValuePair<string,object>> valuesToSave = (new[] { new KeyValuePair<string,object>("!!Index.Id",item.Index.Id),new KeyValuePair<string,object>("!!Index.Name",item.Index.Name),new KeyValuePair<string,object>("!!Index.Type",item.Index.Type) })
+					IEnumerable<KeyValuePair<string,object>> valuesToSave = (new[] { new KeyValuePair<string,object>("!!Index.Id",item.Object.Id),new KeyValuePair<string,object>("!!Index.Name",item.Object.IndexName),new KeyValuePair<string,object>("!!Index.Type",item.Object.Type) })
 						 .Concat(item.Content.Values);
-					foreach (KeyValuePair<string,object> value in valuesToSave)
+					/*foreach (KeyValuePair<string,object> value in valuesToSave)
 						using (SqlCommand cmd = _dbConnection.CreateCommand())
 						{
 							string valFieldName = GetValueFieldNameByValue(value.Value);
@@ -65,7 +66,14 @@ namespace Pepi.Find.SqlRepository
 							AddParm(cmd,"@Type",valFieldName);
 							AddParm(cmd,"@Value",value.Value);
 							await cmd.ExecuteNonQueryAsync();
-						}
+						}*/
+					await new SqlBulkCopy(_dbConnection,SqlBulkCopyOptions.Default,trans)
+					{
+						BatchSize=100,
+						DestinationTableName="ContentIndex"
+					}
+						.WriteToServerAsync(new IndexValuesDataReader(contentId,valuesToSave,GetValueFieldNameByValue));
+
 					trans.Commit();
 					trans.Dispose();
 				}
@@ -86,30 +94,6 @@ namespace Pepi.Find.SqlRepository
 			}
 		}
 		#endregion SaveIndexItemsAsync
-
-		#region WriteErrToDb
-		public void WriteErrToDb(Exception ex,string request)
-		{
-			ex=ex.GetBaseException();
-			_dbLock.Wait();
-			try
-			{
-				using (IDbCommand cmd = _dbConnection.CreateCommand())
-				{
-					cmd.CommandText="insert Error ([TimeStamp],[Message],StaskTrace,Request) values (@TimeStamp,@Message,@StaskTrace,@Request)";
-					AddParm(cmd,"@TimeStamp",DateTime.Now);
-					AddParm(cmd,"@Message",ex.Message);
-					AddParm(cmd,"@StaskTrace",ex.StackTrace??"");
-					AddParm(cmd,"@Request",request);
-					cmd.ExecuteNonQuery();
-				}
-			}
-			finally
-			{
-				_dbLock.Release();
-			}
-		}
-		#endregion WriteErrToDb
 
 		#region AddParm
 		void AddParm(IDbCommand cmd,string name,object value)
@@ -192,6 +176,112 @@ namespace Pepi.Find.SqlRepository
 		}
 		#endregion DataReaderEnumerator
 
+		#region IndexValuesDataReader
+		class IndexValuesDataReader:DbDataReader
+		{
+			int _idContent;
+			IEnumerator<KeyValuePair<string,object>> _values;
+			Func<object,string> GetValueFieldNameByValue;
+			string _valFieldName;
+			int _valFieldInd;
+
+			public IndexValuesDataReader(int idContent,IEnumerable<KeyValuePair<string,object>> values,Func<object,string> GetValueFieldNameByValue)
+			{
+				_idContent=idContent;
+				_values=values.GetEnumerator();
+				this.GetValueFieldNameByValue=GetValueFieldNameByValue;
+			}
+
+			public override int FieldCount => 9;
+
+			public override object GetValue(int i)
+			{
+				if (i==1)
+					return _idContent;
+				if (i==2)
+					return _values.Current.Key;
+				if (i==3)
+					return _valFieldName;
+				return _valFieldInd==i ? _values.Current.Value : DBNull.Value;
+			}
+
+			public override bool IsDBNull(int i)
+			{
+				return (i>3)&&(_valFieldInd!=i);
+			}
+
+			static string[] _dataFieldNames = new[] { "ValueString","ValueInt","ValueFloat","ValueDate","ValueBool" };
+			public override bool Read()
+			{
+				bool result = _values.MoveNext();
+				if (result)
+				{
+					_valFieldName=GetValueFieldNameByValue(_values.Current.Value);
+					_valFieldInd=Array.IndexOf(_dataFieldNames,_valFieldName)+4;
+				}
+				return result;
+			}
+
+			#region not implemented members
+			public override object this[int ordinal] => throw new NotImplementedException();
+
+			public override object this[string name] => throw new NotImplementedException();
+
+			public override int Depth => throw new NotImplementedException();
+
+			public override bool HasRows => throw new NotImplementedException();
+
+			public override bool IsClosed => throw new NotImplementedException();
+
+			public override int RecordsAffected => throw new NotImplementedException();
+
+			public override bool GetBoolean(int ordinal) => throw new NotImplementedException();
+
+			public override byte GetByte(int ordinal) => throw new NotImplementedException();
+
+			public override long GetBytes(int ordinal,long dataOffset,byte[] buffer,int bufferOffset,int length)
+				 => throw new NotImplementedException();
+
+			public override char GetChar(int ordinal) => throw new NotImplementedException();
+
+			public override long GetChars(int ordinal,long dataOffset,char[] buffer,int bufferOffset,int length)
+				 => throw new NotImplementedException();
+
+			public override string GetDataTypeName(int ordinal) => throw new NotImplementedException();
+
+			public override DateTime GetDateTime(int ordinal) => throw new NotImplementedException();
+
+			public override decimal GetDecimal(int ordinal) => throw new NotImplementedException();
+
+			public override double GetDouble(int ordinal) => throw new NotImplementedException();
+
+			public override IEnumerator GetEnumerator() => throw new NotImplementedException();
+
+			public override Type GetFieldType(int ordinal) => throw new NotImplementedException();
+
+			public override float GetFloat(int ordinal) => throw new NotImplementedException();
+
+			public override Guid GetGuid(int ordinal) => throw new NotImplementedException();
+
+			public override short GetInt16(int ordinal) => throw new NotImplementedException();
+
+			public override int GetInt32(int ordinal) => throw new NotImplementedException();
+
+			public override long GetInt64(int ordinal) => throw new NotImplementedException();
+
+			public override string GetName(int ordinal) => throw new NotImplementedException();
+
+			public override int GetOrdinal(string name) => throw new NotImplementedException();
+
+			public override string GetString(int ordinal) => throw new NotImplementedException();
+
+			public override int GetValues(object[] values) => throw new NotImplementedException();
+
+			public override bool NextResult() => throw new NotImplementedException();
+			#endregion not implemented members
+		}
+		#endregion IndexValuesDataReader
+
 		#region SearchResult
 		class SearchResult:ISearchResult
 		{
@@ -222,6 +312,7 @@ namespace Pepi.Find.SqlRepository
 						sri.Index.Id=dr.IsDBNull(3) ? "" : dr.GetString(3);
 						sri.Document.Id=dr.GetInt32(0);
 						sri.Document.LanguageName=dr.GetString(1);
+						sri.Document.Types=Enumerable.Empty<string>();
 						return sri;
 					});
 					_count=dr.Peek() ? dr.GetInt32(2) : 0;
@@ -332,6 +423,19 @@ namespace Pepi.Find.SqlRepository
 		}
 		#endregion FacetResult
 
+		#region DeleteByQueryResult
+		class DeleteByQueryResult:IDeleteByQueryResult
+		{
+			IEnumerable<DeleteResultItem> _deleteResults;
+			internal DeleteByQueryResult(IEnumerable<DeleteResultItem> deleteResultItems)
+			{
+				_deleteResults=deleteResultItems;
+			}
+
+			public IEnumerable<DeleteResultItem> DeleteResults => _deleteResults;
+		}
+		#endregion DeleteByQueryResult
+
 		#region CreateCommand
 		static SqlCommand CreateCommand(SqlConnection dbConnection,PreparedCommand preparedCommand)
 		{
@@ -353,7 +457,7 @@ namespace Pepi.Find.SqlRepository
 		}
 		#endregion CreateCommand
 
-		#region CreateSearchQueryBuilder & CreateFacetQueryBuilder
+		#region CreateSearchQueryBuilder & CreateFacetQueryBuilder & CreateDeleteQueryBuilder
 		public ISearchQueryBuilder CreateSearchQueryBuilder()
 		{
 			return new SearchQueryBuilder(_dbConnection);
@@ -363,7 +467,12 @@ namespace Pepi.Find.SqlRepository
 		{
 			return new FacetQueryBuilder(_dbConnection);
 		}
-		#endregion CreateSearchQueryBuilder & CreateFacetQueryBuilder
+
+		public IDeleteByQueryBuilder CreateDeleteQueryBuilder()
+		{
+			return new DeleteByQueryBuilder(_dbConnection);
+		}
+		#endregion CreateSearchQueryBuilder & CreateFacetQueryBuilder & CreateDeleteQueryBuilder
 
 		#region QueryBuilder
 		internal const string TotalCountFieldName = "[!!totalCount!!]";
@@ -585,9 +694,14 @@ namespace Pepi.Find.SqlRepository
 
 			internal override string GenerateQuery()
 			{
+				return GenerateSelectQuery(_selectParts,_tables,_whereParts);
+			}
+
+			internal static string GenerateSelectQuery(IEnumerable<Tuple<string,string>> selectParts,IEnumerable<Tuple<string,string,string>> tables,IEnumerable<SearchQueryBase> whereParts)
+			{
 				StringBuilder sb = new StringBuilder("select ");
 				int a = 0;
-				foreach (Tuple<string,string> item in _selectParts)
+				foreach (Tuple<string,string> item in selectParts)
 				{
 					if (a++!=0)
 						sb.Append(",");
@@ -595,34 +709,36 @@ namespace Pepi.Find.SqlRepository
 					if (item.Item2!=null)
 						sb.Append(' ').Append(item.Item2);
 				}
-				if (_tables.Count!=0)
+
+				bool first = true;
+				foreach (Tuple<string,string,string> item in tables)
 				{
-					sb.AppendFormat(" from");
-					foreach (Tuple<string,string,string> item in _tables)
+					if (first)
 					{
-						if (item.Item3!=null)
-							sb.Append(" join");
-						sb.Append(' ').Append(item.Item1);
-						if (item.Item2!=null)
-							sb.Append(' ').Append(item.Item2);
-						if (item.Item3!=null)
-							sb.Append(" on ").Append(item.Item3);
+						sb.AppendFormat(" from");
+						first=false;
 					}
+
+					if (item.Item3!=null)
+						sb.Append(" join");
+					sb.Append(' ').Append(item.Item1);
+					if (item.Item2!=null)
+						sb.Append(' ').Append(item.Item2);
+					if (item.Item3!=null)
+						sb.Append(" on ").Append(item.Item3);
 				}
-				if (_whereParts.Count!=0)
+
+				first = true;
+				foreach (SearchQueryBase item in whereParts)
 				{
-					bool first = true;
-					foreach (SearchQueryBase item in _whereParts)
+					if (first)
 					{
-						if (first)
-						{
-							sb.Append(" where ");
-							first=false;
-						}
-						else
-							sb.Append(" and ");
-						sb.Append(item.GenerateQuery());
+						sb.Append(" where ");
+						first=false;
 					}
+					else
+						sb.Append(" and ");
+					sb.Append(item.GenerateQuery());
 				}
 
 				return sb.ToString();
@@ -662,6 +778,64 @@ namespace Pepi.Find.SqlRepository
 					 .Append(" from ContentIndex where PropertyName=@p group by ").Append(valueFieldName);
 				PreparedCommand preparedCommand = new PreparedCommand { CommandText=query.ToString(),Parameters=new Dictionary<string,object> { { "@p",_fieldName } } };
 				return Task.FromResult((IFacetResult)new FacetResult(preparedCommand,_dbConnection));
+			}
+		}
+
+		class DeleteByQueryBuilder:SearchQueryBase, IDeleteByQueryBuilder
+		{
+			SqlConnection _dbConnection;
+			internal DeleteByQueryBuilder(SqlConnection dbConnection)
+			{
+				_dbConnection=dbConnection;
+			}
+
+			public async Task<IDeleteByQueryResult> ExecuteAsync()
+			{
+				this
+					.AddSelect(new Tuple<string,string>("distinct c.ValueString","IndexName"))
+					.AddSelect(new Tuple<string,string>("c.IdContent","Id"))
+					.AddTable("ContentIndex","c",null)
+					.AddWhere("c.PropertyName='!!Index.Name'");
+
+				string query = GenerateQuery();
+				query=string.Concat("select * into #temp from (",query,") a;\r\ndelete from c from ContentIndex c join #temp t on t.Id=c.IdContent;\r\nselect IndexName,count(*) CountInIndex from #temp group by IndexName");
+
+				_dbLock.WaitAsync().Wait();
+				SqlCommand cmd = null;
+				SqlTransaction trans = null;
+				SqlDataReader dr = null;
+				List<DeleteResultItem> delRes = new List<DeleteResultItem>();
+				try
+				{
+					cmd=CreateCommand(_dbConnection,new PreparedCommand { CommandText=query,Parameters=_parameters.ToDictionary(x => x.Key,x => x.Value) });
+					cmd.Transaction=trans=_dbConnection.BeginTransaction();
+					dr=await cmd.ExecuteReaderAsync();
+					while (await dr.ReadAsync())
+						delRes.Add(new DeleteResultItem { IndexName=dr.GetString(0),DeletedCount=dr.GetInt32(1) });
+					dr.Dispose();
+					dr=null;
+					trans.Commit();
+					trans=null;
+				}
+				finally
+				{
+					if (dr!=null)
+						dr.Dispose();
+					if (cmd!=null)
+					{
+						if (trans!=null)
+							trans.Rollback();
+						cmd.Dispose();
+					}
+					_dbLock.Release();
+				}
+
+				return new DeleteByQueryResult(delRes.ToArray());
+			}
+
+			internal override string GenerateQuery()
+			{
+				return SearchQueryBuilder.GenerateSelectQuery(_selectParts,_tables,_whereParts);
 			}
 		}
 

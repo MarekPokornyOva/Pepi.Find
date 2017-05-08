@@ -64,7 +64,7 @@ namespace Pepi.Find.Server
 		async Task ProcessBulkAsync(IHandlerResponse response,TextReader content)
 		{
 			List<IndexItem> bulkItems = new List<IndexItem>();
-			IndexItemIndex index = null;
+			IndexItemObject @object = null;
 			List<KeyValuePair<string,object>> contentValuesItem = null;
 			ReadJson(content,jr =>
 			{
@@ -75,23 +75,28 @@ namespace Pepi.Find.Server
 					{
 						IndexItem bi;
 						bulkItems.Add(bi=new IndexItem());
-						index=bi.Index;
-						index.Name=(string)jr.Value;
+						@object=bi.Object;
+						@object.IndexName=(string)jr.Value;
 						contentValuesItem=bi.Content.Values;
 					}
 					else
 						switch (fieldName)
 						{
 							case "_type":
-								index.Type=(string)jr.Value;
+								@object.Type=(string)jr.Value;
 								break;
 							case "_id":
-								index.Id=(string)jr.Value;
+								@object.Id=(string)jr.Value;
 								break;
 						}
 				}
 				else
-					contentValuesItem.Add(new KeyValuePair<string,object>(RemovePathIndex(jr.Path),jr.Value));
+				{
+					string propName=RemovePathIndex(jr.Path);
+					if (propName=="ContentLink.WorkID$$number")
+						@object.Version=(int)Convert.ChangeType(jr.Value,typeof(int));
+					contentValuesItem.Add(new KeyValuePair<string,object>(propName,jr.Value));
+				}
 			});
 
 			await _indexRepository.SaveIndexItemsAsync(bulkItems);
@@ -108,10 +113,10 @@ namespace Pepi.Find.Server
 							using (jw.WriteObject())
 							using (jw.WriteObject("index"))
 								jw
-									  .WriteProperty("_index",item.Index.Name)
-									  .WriteProperty("_type",item.Index.Type)
-									  .WriteProperty("_id",item.Index.Id)
-									  .WriteProperty("_version",1)
+									  .WriteProperty("_index",item.Object.IndexName)
+									  .WriteProperty("_type",item.Object.Type)
+									  .WriteProperty("_id",item.Object.Id)
+									  .WriteProperty("_version",item.Object.Version)
 									  .WriteProperty("ok",true);
 				}
 		}

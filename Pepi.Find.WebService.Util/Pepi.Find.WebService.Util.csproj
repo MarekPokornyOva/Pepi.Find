@@ -2,13 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
-    <Version>0.7.1.1</Version>
+    <Version>0.7.2.1</Version>
     <Description />
     <Authors>Marek Pokorny</Authors>
     <Company>MpSoft</Company>
     <Product>Pepi.Find</Product>
     <Copyright>Copyright 2017 Marek Pokorny</Copyright>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <PackageIconUrl>https://github.com/MarekPokornyOva/Pepi.Find/blob/master/icon.png?raw=true</PackageIconUrl>
   </PropertyGroup>
 
   <ItemGroup>

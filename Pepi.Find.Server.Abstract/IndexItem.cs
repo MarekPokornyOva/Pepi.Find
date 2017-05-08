@@ -6,15 +6,16 @@ namespace Pepi.Find.Server.Abstract
 {
 	public class IndexItem
 	{
-		public IndexItemIndex Index { get; } = new IndexItemIndex();
+		public IndexItemObject Object { get; } = new IndexItemObject();
 		public IndexItemContent Content { get; } = new IndexItemContent();
 	}
 
-	public class IndexItemIndex
+	public class IndexItemObject
 	{
 		public string Id { get; set; }
 		public string Type { get; set; }
-		public string Name { get; set; }
+		public string IndexName { get; set; }
+		public int Version { get; set; }
 	}
 
 	public class IndexItemContent

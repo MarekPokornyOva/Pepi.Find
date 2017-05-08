@@ -14,9 +14,8 @@ Pepi.Find.SqlRepository - Repository storing indexed data in MS Sql Server datab
 Pepi.Find.WebService - Sample ASP.NET core service hosting the server.
 Pepi.Find.WebService.Util - Supporting class to simplify implementation in ASP.NET core application.
 Pepi.Find.WinDesktop - Sample windows application hosting the server. It also displays HTTP communication with client so it is good while getting started.
-
-Further ideas:
-I'd like to make a custom client implementation and omit serialization+HTTP communication. It should be faster to search data directly from client system instead of call separate sevice. Both systems has pros and cons so why to don't have options? :-)
+Pepi.Find.Direct - Possibility to host indexing service directly in EpiServer site - no external service needed. It also doesn't need JSON serialization+HTTP communication.
+Pepi.Find.Direct.Cms - Pepi.Find.Direct's extension for EpiServer CMS features.
 
 DB specialist wanted:
 Current solution is working however I believe it's possible to optimize data structure and speed up the solution. If you are interested in or know some1 who could help, please get involved (try by yourself or contact me).
