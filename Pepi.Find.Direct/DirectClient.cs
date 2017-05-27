@@ -144,6 +144,7 @@ namespace Pepi.Find.Direct
 		{
 			JsonSerializer js=Serializer.CreateDefault();
 			js.ContractResolver=this.Conventions.ContractResolver;
+			js.Converters.Insert(0, DateTimeRawConverter.Instance);
 			this.Conventions.CustomizeSerializer?.Invoke(js);
 
 			List<KeyValuePair<string,object>> result=new List<KeyValuePair<string,object>>();
@@ -511,6 +512,35 @@ namespace Pepi.Find.Direct
 			#endregion overrides
 		}
 		#endregion FindJsonWriter
+
+		#region DateTimeRawConverter
+		class DateTimeRawConverter:JsonConverter
+		{
+			internal static DateTimeRawConverter Instance { get; } = new DateTimeRawConverter();
+
+			static Type _typeDt=typeof(DateTime);
+			static Type _typeDtNull=typeof(DateTime?);
+			public override bool CanConvert(Type objectType)
+			{
+				return _typeDt.Equals(objectType)||_typeDtNull.Equals(objectType);
+			}
+
+			public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+			{
+				throw new NotImplementedException();
+			}
+
+			public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+			{
+				if (value is DateTime valDt)
+					writer.WriteValue(valDt);
+				else if (value is DateTime?)
+					writer.WriteValue((DateTime?)value);
+				else
+					throw new InvalidProgramException();
+			}
+		}
+		#endregion DateTimeRawConverter
 
 		#region WriteFilter
 		void WriteFilter(Filter filter,IQueryBuilder qb)
