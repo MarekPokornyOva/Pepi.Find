@@ -111,7 +111,7 @@ namespace Pepi.Find.SqlRepository
 		internal static string GetValueFieldNameByValue(object value)
 		{
 			Type valType = value.GetType();
-			if (valType==typeof(string))
+			if ((valType==typeof(string))||(valType==typeof(Guid)))
 				return "ValueString";
 			if ((valType==typeof(int))||(valType==typeof(long)))
 				return "ValueInt";
