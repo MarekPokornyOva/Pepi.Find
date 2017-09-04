@@ -47,9 +47,25 @@ namespace Pepi.Find.Direct
 
 		public string ServiceUrl => throw new NotImplementedException();
 
+		Settings _settings;
+		static object _settingsLoadLock=new object();
 		public Settings Settings
 		{
-			get { throw new NotImplementedException(); }
+			get
+			{
+				if (_settings==null)
+					lock (_settingsLoadLock)
+						if (_settings==null)
+						{
+							Languages langs;
+							Settings settings=new Settings { Languages=langs=new Languages() };
+							foreach (Language l in Language.GetAll())
+								langs.Add(l.FieldSuffix);
+							_settings=settings;
+						}
+				return _settings;
+				
+			}
 		}
 
 		public DeleteResult Delete(Type type,DocumentId id,Action<DeleteCommand> commandAction)
@@ -196,7 +212,20 @@ namespace Pepi.Find.Direct
 
 		public ITypeSearch<TSource> Search<TSource>(Language language)
 		{
-			throw new NotImplementedException();
+			return new Search<TSource,IQuery>(this,delegate (ISearchContext context)
+			{
+				context.SourceTypes.Add(typeof(TSource));
+				context.Language=language; //it seems it's not used anywhere further in original EpiServer.Find's client
+				/*context.CommandAction = delegate (SearchCommand command)
+				{
+					this.Conventions.SearchTypeFilter(command, context.SourceTypes);
+				};*/
+
+				context.CommandAction=delegate (SearchCommand command)
+				{
+					((SearchCommandWrap)command).SourceTypes=context.SourceTypes;
+				};
+			});
 		}
 
 		#region Search
@@ -205,14 +234,21 @@ namespace Pepi.Find.Direct
 			SearchCommandWrap searchCommand = new SearchCommandWrap();
 			commandAction(searchCommand);
 
-			ISearchQueryBuilder sqb = _indexRepository.CreateSearchQueryBuilder();
-			WriteFilter(((ConstantScoreQuery)requestBody.Query).Filter,sqb);
+			ISearchResult dbResult;
+			if (requestBody.Query==null)
+				dbResult=EmptySearchResult.Instance;
+			else
+			{
+				ISearchQueryBuilder sqb = _indexRepository.CreateSearchQueryBuilder();
+				WriteFilter(((ConstantScoreQuery)requestBody.Query).Filter, sqb);
 
-			sqb.SetSkipSize(requestBody.From);
-			sqb.SetResultSize(requestBody.Size);
-			sqb.AddSort(requestBody.Sort.OfType<Sorting>().Select(x => new SortInfo(x)).ToArray());
+				sqb.SetSkipSize(requestBody.From);
+				sqb.SetResultSize(requestBody.Size);
+				sqb.AddSort(requestBody.Sort.OfType<Sorting>().Select(x => new SortInfo(x)).ToArray());
 
-			ISearchResult dbResult = sqb.ExecuteAsync().Result;
+				dbResult = sqb.ExecuteAsync().Result;
+			}
+
 			int totalCount = dbResult.Count;
 			List<SearchHit<TResult>> items = dbResult.Items.Select(x => new SearchHit<TResult>() { Document=(TResult)(object)new ResultJObject(x.Document.Id,x.Document.LanguageName,x.Document.Types),Id=x.Index.Id,Index=x.Index.Name,Score=x.Index.Score }).ToList();
 			HitCollection<TResult> hc = new HitCollection<TResult>() { Hits=items,Total=totalCount };
@@ -235,6 +271,23 @@ namespace Pepi.Find.Direct
 			public bool Descendant { get { return _org.Order==SortOrder.Descending; } }
 
 			public string PropertyName { get { return _org.FieldName; } }
+		}
+
+		class EmptySearchResult : ISearchResult
+		{
+			private EmptySearchResult()
+			{}
+
+			static SearchResultItem[] _items=new SearchResultItem[0];
+			public IEnumerable<SearchResultItem> Items => _items;
+
+			public int Count => 0;
+
+			public void Dispose()
+			{}
+
+			static EmptySearchResult _instance = new EmptySearchResult();
+			internal static EmptySearchResult Instance => _instance;
 		}
 		#endregion Search
 
