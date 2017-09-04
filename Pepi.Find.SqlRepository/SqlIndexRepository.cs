@@ -644,7 +644,7 @@ namespace Pepi.Find.SqlRepository
 				if (_skip.HasValue||_take.HasValue||_sortFields!=null)
 				{
 					List<Tuple<string,string,bool>> sortFields = new List<Tuple<string,string,bool>>();
-					if (_sortFields==null)
+					if (_sortFields.Length==0)
 						sortFields.Add(new Tuple<string,string,bool>("0 [!!sort!!]","[!!sort!!]",false));
 					else
 					{
