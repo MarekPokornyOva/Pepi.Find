@@ -240,7 +240,16 @@ namespace Pepi.Find.Direct
 			else
 			{
 				ISearchQueryBuilder sqb = _indexRepository.CreateSearchQueryBuilder();
-				WriteFilter(((ConstantScoreQuery)requestBody.Query).Filter, sqb);
+				IQuery query = requestBody.Query;
+				if (query is ConstantScoreQuery constantScoreQuery)
+					WriteFilter(constantScoreQuery.Filter, sqb);
+				else if ((query is FilteredQuery filteredQuery)&&(filteredQuery.Query is MultiFieldQueryStringQuery multiFieldQueryStringQuery)&&(multiFieldQueryStringQuery.Query is FieldFilterValue fieldFilterValue))
+				{
+					WriteFilter(filteredQuery.Filter,sqb);
+					WriteFilter(new OrFilter(multiFieldQueryStringQuery.Fields.Select(field=>new TermFilter(field,fieldFilterValue)).ToArray()),sqb);
+				}
+				else
+					throw new InvalidOperationException("Unsupported query type");
 
 				sqb.SetSkipSize(requestBody.From);
 				sqb.SetResultSize(requestBody.Size);
