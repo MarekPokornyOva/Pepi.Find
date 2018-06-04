@@ -62,6 +62,8 @@ namespace Pepi.Find.WebService
 
 			public Task<ISearchResult> ExecuteAsync() => Task.FromResult((ISearchResult)new FakeSearchResult());
 
+			public void SetHighlights(string query, IEnumerable<HighlightFieldRequest> fields) { }
+
 			public void SetRequestedFields(IEnumerable<string> fields) { }
 
 			public void SetResultSize(long? resultSize) { }

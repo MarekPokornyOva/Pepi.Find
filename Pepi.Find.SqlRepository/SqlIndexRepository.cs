@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using Pepi.Find.Server.Abstract;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 #endregion using
 
 namespace Pepi.Find.SqlRepository
@@ -288,12 +290,16 @@ namespace Pepi.Find.SqlRepository
 			PreparedCommand _preparedCommand;
 			SqlConnection _dbConnection;
 			string[] _fieldNames;
+			Tuple<string,string,string>[] _highlightFields;
+			string _highlightQuery;
 			bool _loaded;
-			internal SearchResult(PreparedCommand preparedCommand,SqlConnection dbConnection,string[] fieldNames)
+			internal SearchResult(PreparedCommand preparedCommand,SqlConnection dbConnection,string[] fieldNames,Tuple<string,string,string>[] highlightFields,string highlightQuery)
 			{
 				_preparedCommand=preparedCommand;
 				_dbConnection=dbConnection;
 				_fieldNames=fieldNames;
+				_highlightFields=highlightFields;
+				_highlightQuery=highlightQuery;
 			}
 
 			void Load()
@@ -307,6 +313,9 @@ namespace Pepi.Find.SqlRepository
 
 					dr=new PeekableDataReader(cmd.ExecuteReaderAsync().Result);
 					Dictionary<string,int> fieldsMapping=_fieldNames.ToDictionary(x=>x,x=>dr.GetOrdinal(x));
+					Tuple<string,string,string,int>[] hlFieldsMapping=_highlightFields.Select(x=>new Tuple<string,string,string,int>(x.Item1,x.Item2,x.Item3,dr.GetOrdinal(SearchQueryBuilder.GetHiLightFieldName(x.Item1)))).ToArray();
+					StringBuilder sb=new StringBuilder();
+					Regex hiLightRegex=null;
 					_items=new DataReaderEnumerable<SearchResultItem>(dr,new Action(() => { dr.Dispose(); cmd.Dispose(); if (_dbLock.CurrentCount==0) _dbLock.Release(); }),() =>
 					{
 						SearchResultItem sri=new SearchResultItem();
@@ -317,6 +326,22 @@ namespace Pepi.Find.SqlRepository
 						sri.Document.LanguageName=dr.GetString(1);
 						sri.Document.Types=dr.GetString(6).Split((char)13);
 						sri.Document.FieldValues=_fieldNames.Select(x=> { object val=dr.GetValue(fieldsMapping[x]); if (val==DBNull.Value) val=null; else if (val is int intVal) val=(long)intVal; return new KeyValuePair<string,object>(x,val); }).ToArray();
+
+						sri.Highlights.Fields=hlFieldsMapping.Select(hf=>
+						{
+							string hlVal;
+							if ((dr.IsDBNull(hf.Item4))||((hlVal=dr.GetString(hf.Item4)).Length==0))
+								return null;
+							sb.Clear();
+							if (hiLightRegex==null)
+								//hiLightRegex=new Regex($"(?<q>{Regex.Escape(_highlightQuery)})",RegexOptions.IgnoreCase);
+								hiLightRegex=new Regex(_highlightQuery,RegexOptions.IgnoreCase);
+							ProcessHighlight(hlVal,hf,sb,hiLightRegex);
+							if (sb.Length==0)
+								return null;
+							return new SearchFieldHighlights { FieldName=hf.Item1,Highlights=new string[] { sb.ToString() } };
+						}).Where(x=>x!=null).ToArray();
+
 						return sri;
 					});
 					_count=dr.Peek()?dr.GetInt32(2):0;
@@ -347,6 +372,25 @@ namespace Pepi.Find.SqlRepository
 
 				if (_dbLock.CurrentCount==0)
 					_dbLock.Release();
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			void ProcessHighlight(string hlVal,Tuple<string,string,string,int> hf,StringBuilder sb,Regex regex)
+			{
+				Match m=regex.Match(hlVal);
+				if (m.Success)
+				{
+					sb.Append(hlVal);
+					sb.Insert(m.Index+m.Length,hf.Item3);
+
+					sb.Insert(m.Index,hf.Item2);
+					if (m.Index>64)
+						sb.Remove(0,m.Index-64);
+
+					int overLen=sb.Length-128;
+					if (overLen>0)
+						sb.Remove(128,overLen);
+				}
 			}
 		}
 
@@ -620,7 +664,7 @@ namespace Pepi.Find.SqlRepository
 			internal virtual string GenerateQuery() => throw new NotImplementedException();
 		}
 
-		class SearchQueryBuilder:SearchQueryBase, ISearchQueryBuilder
+		class SearchQueryBuilder:SearchQueryBase,ISearchQueryBuilder
 		{
 			SqlConnection _dbConnection;
 			internal SearchQueryBuilder(SqlConnection dbConnection)
@@ -637,6 +681,8 @@ namespace Pepi.Find.SqlRepository
 					_requestedFields=new string[0];
 				if (_scriptFields==null)
 					_scriptFields=new ScriptField[0];
+				if (_highlightFields==null)
+					_highlightFields=new HighlightFieldRequest[0];
 				
 				this
 					 .AddSelect(new Tuple<string,string>("IdContent",null))
@@ -657,18 +703,31 @@ namespace Pepi.Find.SqlRepository
 						string fieldName=sf.Param("field");
 						try
 						{
-							this.AddSelect(new Tuple<string, string>($"(select substring(d.{GetValueFieldNameByName(fieldName)},1,{sf.Param("length")}) from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})", $"[{sf.Name}]"));
+							this.AddSelect(new Tuple<string,string>($"(select substring(d.{GetValueFieldNameByName(fieldName)},1,{sf.Param("length")}) from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})", $"[{sf.Name}]"));
 						}
 						catch //provide empty string for unsupported data types (when GetValueFieldNameByName throws an exception)
 						{
-							this.AddSelect(new Tuple<string, string>($"('')", $"[{sf.Name}]"));
+							this.AddSelect(new Tuple<string,string>($"('')", $"[{sf.Name}]"));
 						}
 					}
 					else
 						throw new Exception("Unsupported script");
 				}
+				Tuple<string,string,string>[] hfs=_highlightFields.Select(hf=>
+				{
+					string fieldName=hf.FieldName;
+					try
+					{
+						this.AddSelect(new Tuple<string,string>($"(select d.{GetValueFieldNameByName(fieldName)} from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})",$"[{GetHiLightFieldName(fieldName)}]"));
+						return new Tuple<string,string,string>(hf.FieldName,string.Concat(hf.PreTags??new string[0]),string.Concat(hf.PostTags??new string[0]));
+					}
+					catch
+					{
+						return null;
+					}
+				}).Where(x=>x!=null).ToArray();
 
-				string query = GenerateQuery();
+				string query=GenerateQuery();
 
 				if (_skip.HasValue||_take.HasValue||_sortFields!=null)
 				{
@@ -700,7 +759,7 @@ namespace Pepi.Find.SqlRepository
 					query=sb.ToString();
 				}
 
-				return Task.FromResult((ISearchResult)new SearchResult(new PreparedCommand { CommandText=query,Parameters=_parameters.ToDictionary(x => x.Key,x => x.Value) },_dbConnection, _requestedFields.Concat(_scriptFields.Select(x=>x.Name)).ToArray()));
+				return Task.FromResult((ISearchResult)new SearchResult(new PreparedCommand { CommandText=query,Parameters=_parameters.ToDictionary(x=>x.Key,x=>x.Value) },_dbConnection,_requestedFields.Concat(_scriptFields.Select(x=>x.Name)).ToArray(),hfs,_highlightQuery));
 			}
 
 			ISortInfo[] _sortFields;
@@ -731,6 +790,14 @@ namespace Pepi.Find.SqlRepository
 			public void SetScriptFields(IEnumerable<ScriptField> fields)
 			{
 				_scriptFields=fields.ToArray();
+			}
+
+			string _highlightQuery;
+			HighlightFieldRequest[] _highlightFields;
+			public void SetHighlights(string query,IEnumerable<HighlightFieldRequest> fields)
+			{
+				_highlightQuery=query;
+				_highlightFields=fields.ToArray();
 			}
 
 			internal override string GenerateQuery()
@@ -784,6 +851,9 @@ namespace Pepi.Find.SqlRepository
 
 				return sb.ToString();
 			}
+
+			internal static string GetHiLightFieldName(string fieldName)
+				=> $"!!HiLi.{fieldName}!!";
 		}
 
 		class FacetQueryBuilder:SearchQueryBase, IFacetQueryBuilder

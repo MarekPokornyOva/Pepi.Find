@@ -12,6 +12,7 @@ namespace Pepi.Find.Server.Abstract
 		void SetSkipSize(long? skipSize);
 		void SetResultSize(long? resultSize);
 		void AddSort(ISortInfo[] sort);
+		void SetHighlights(string query,IEnumerable<HighlightFieldRequest> fields);
 		Task<ISearchResult> ExecuteAsync();
 	}
 
@@ -29,5 +30,19 @@ namespace Pepi.Find.Server.Abstract
 		public string Script { get; }
 		public string Language { get; }
 		public Dictionary<string,object> Parameters { get; }
+	}
+
+	public class HighlightFieldRequest
+	{
+		public HighlightFieldRequest(string fieldName,IEnumerable<string> preTags,IEnumerable<string> postTags)
+		{
+			FieldName=fieldName;
+			PreTags=preTags;
+			PostTags=postTags;
+		}
+
+		public string FieldName { get; }
+		public IEnumerable<string> PreTags { get; }
+		public IEnumerable<string> PostTags { get; }
 	}
 }

@@ -64,7 +64,6 @@ namespace Pepi.Find.Direct
 							_settings=settings;
 						}
 				return _settings;
-				
 			}
 		}
 
@@ -252,6 +251,8 @@ namespace Pepi.Find.Direct
 					WriteFilter(filteredQuery.Filter,sqb);
 					//WriteFilter(new OrFilter(multiFieldQueryStringQuery.Fields.Select(field=>new TermFilter(field,fieldFilterValue)).ToArray()),sqb);
 					WriteFilter(new QueryStringFilter(multiFieldQueryStringQuery.Fields,fieldFilterValue),sqb);
+
+					sqb.SetHighlights(multiFieldQueryStringQuery.RawQuery,requestBody.Highlight.Fields.Select(x=>new HighlightFieldRequest(TrimFieldNameLang(x.FieldName),x.PreTags,x.PostTags)));
 				}
 				else
 					throw new InvalidOperationException("Unsupported query type");
@@ -267,7 +268,7 @@ namespace Pepi.Find.Direct
 
 			string[] scriptFieldNames=requestBody.ScriptFields.Select(x=>x.Name).ToArray();
 			int totalCount=dbResult.Count;
-			List<SearchHit<TResult>> items=dbResult.Items.Select(x => new SearchHit<TResult>() { Document=(TResult)(object)new ResultJObject(x.Document.Id,x.Document.LanguageName,x.Document.Types,FixScriptFieldValues(x.Document.FieldValues,scriptFieldNames),requestBody.PartialFields.Select(pf=>pf.Name).ToArray()),Id=x.Index.Id,Index=x.Index.Name,Score=x.Index.Score,Highlights=MapHighlights(x.Highlights) }).ToList();
+			List<SearchHit<TResult>> items=dbResult.Items.Select(x => new SearchHit<TResult>() { Document=(TResult)(object)new ResultJObject(x.Document.Id,x.Document.LanguageName,x.Document.Types,FixScriptFieldValues(x.Document.FieldValues,scriptFieldNames),requestBody.PartialFields.Select(pf=>pf.Name).ToArray()),Id=x.Index.Id,Index=x.Index.Name,Score=x.Index.Score,Highlights=MapHighlights(requestBody.Highlight.Fields,x.Highlights) }).ToList();
 			HitCollection<TResult> hc=new HitCollection<TResult>() { Hits=items,Total=totalCount };
 			return new SearchResults<TResult>(new SearchResult<TResult>()
 			{
@@ -277,11 +278,11 @@ namespace Pepi.Find.Direct
 			});
 		}
 
-		static Highlights MapHighlights(SearchResultHighlight highlights)
+		static Highlights MapHighlights(IList<FieldHighlightRequest> fieldHighlights,SearchResultHighlight highlights)
 		{
 			Highlights result=new Highlights();
 			foreach (SearchFieldHighlights item in highlights.Fields)
-				result.Add(new FieldHighlights(item.FieldName,item.Highlights));
+				result.Add(new FieldHighlights(fieldHighlights.First(x=>TrimFieldNameLang(x.FieldName)==item.FieldName).FieldName,item.Highlights));
 			return result;
 		}
 
@@ -717,16 +718,19 @@ namespace Pepi.Find.Direct
 
 		void WriteFilterFulltext(QueryStringFilter filter,IQueryBuilder qb)
 		{
-			qb.AddFullText(FieldFilterValue2Value(filter.Value) as string, filter.Fields.Select(x=> {
-				int pos = x.IndexOf("$$");
-				if (pos != -1)
-				{
-					pos = x.IndexOf(".", pos);
-					if (pos != -1)
-						x = x.Substring(0, pos);
-				}
-				return x;
-			}).Distinct().ToArray());
+			qb.AddFullText(FieldFilterValue2Value(filter.Value) as string,filter.Fields.Select(TrimFieldNameLang).Distinct().ToArray());
+		}
+
+		static string TrimFieldNameLang(string fieldName)
+		{
+			int pos=fieldName.IndexOf("$$");
+			if (pos!=-1)
+			{
+				pos=fieldName.IndexOf(".",pos);
+				if (pos!=-1)
+					fieldName=fieldName.Substring(0,pos);
+			}
+			return fieldName;
 		}
 		#endregion WriteFilter
 
