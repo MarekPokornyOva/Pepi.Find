@@ -61,7 +61,11 @@ namespace Pepi.Find.WinDesktop
 
 			public Task<ISearchResult> ExecuteAsync() => Task.FromResult((ISearchResult)new FakeSearchResult());
 
+			public void SetRequestedFields(IEnumerable<string> fields) { }
+
 			public void SetResultSize(long? resultSize) { }
+
+			public void SetScriptFields(IEnumerable<ScriptField> fields) { }
 
 			public void SetSkipSize(long? skipSize) { }
 
