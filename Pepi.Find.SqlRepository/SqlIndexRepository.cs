@@ -309,7 +309,7 @@ namespace Pepi.Find.SqlRepository
 					Dictionary<string,int> fieldsMapping=_fieldNames.ToDictionary(x=>x,x=>dr.GetOrdinal(x));
 					_items=new DataReaderEnumerable<SearchResultItem>(dr,new Action(() => { dr.Dispose(); cmd.Dispose(); if (_dbLock.CurrentCount==0) _dbLock.Release(); }),() =>
 					{
-						SearchResultItem sri = new SearchResultItem();
+						SearchResultItem sri=new SearchResultItem();
 						sri.Index.Name=dr.IsDBNull(4)?"":dr.GetString(4);
 						sri.Index.ContentTypeName=dr.IsDBNull(5)?"":dr.GetString(5);
 						sri.Index.Id=dr.IsDBNull(3)?"":dr.GetString(3);
@@ -659,7 +659,7 @@ namespace Pepi.Find.SqlRepository
 						{
 							this.AddSelect(new Tuple<string, string>($"(select substring(d.{GetValueFieldNameByName(fieldName)},1,{sf.Param("length")}) from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})", $"[{sf.Name}]"));
 						}
-						catch
+						catch //provide empty string for unsupported data types (when GetValueFieldNameByName throws an exception)
 						{
 							this.AddSelect(new Tuple<string, string>($"('')", $"[{sf.Name}]"));
 						}
