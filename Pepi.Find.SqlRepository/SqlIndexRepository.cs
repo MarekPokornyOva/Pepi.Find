@@ -171,7 +171,7 @@ namespace Pepi.Find.SqlRepository
 			object IEnumerator.Current => Current;
 
 			public void Dispose() => _disp();
-			public bool MoveNext() { _valTaken=false; bool res = _dr.Read(); return res; }
+			public bool MoveNext() { _valTaken=false; return _dr.Read(); }
 			public void Reset() => throw new NotImplementedException();
 		}
 		#endregion DataReaderEnumerator
@@ -287,11 +287,13 @@ namespace Pepi.Find.SqlRepository
 		{
 			PreparedCommand _preparedCommand;
 			SqlConnection _dbConnection;
+			string[] _fieldNames;
 			bool _loaded;
-			internal SearchResult(PreparedCommand preparedCommand,SqlConnection dbConnection)
+			internal SearchResult(PreparedCommand preparedCommand,SqlConnection dbConnection,string[] fieldNames)
 			{
 				_preparedCommand=preparedCommand;
 				_dbConnection=dbConnection;
+				_fieldNames=fieldNames;
 			}
 
 			void Load()
@@ -304,18 +306,20 @@ namespace Pepi.Find.SqlRepository
 					cmd=CreateCommand(_dbConnection,_preparedCommand);
 
 					dr=new PeekableDataReader(cmd.ExecuteReaderAsync().Result);
+					Dictionary<string,int> fieldsMapping=_fieldNames.ToDictionary(x=>x,x=>dr.GetOrdinal(x));
 					_items=new DataReaderEnumerable<SearchResultItem>(dr,new Action(() => { dr.Dispose(); cmd.Dispose(); if (_dbLock.CurrentCount==0) _dbLock.Release(); }),() =>
 					{
 						SearchResultItem sri = new SearchResultItem();
-						sri.Index.Name=dr.IsDBNull(4) ? "" : dr.GetString(4);
-						sri.Index.ContentTypeName=dr.IsDBNull(5) ? "" : dr.GetString(5);
-						sri.Index.Id=dr.IsDBNull(3) ? "" : dr.GetString(3);
+						sri.Index.Name=dr.IsDBNull(4)?"":dr.GetString(4);
+						sri.Index.ContentTypeName=dr.IsDBNull(5)?"":dr.GetString(5);
+						sri.Index.Id=dr.IsDBNull(3)?"":dr.GetString(3);
 						sri.Document.Id=dr.GetInt32(0);
 						sri.Document.LanguageName=dr.GetString(1);
-						sri.Document.Types=Enumerable.Empty<string>();
+						sri.Document.Types=dr.GetString(6).Split((char)13);
+						sri.Document.FieldValues=_fieldNames.Select(x=> { object val=dr.GetValue(fieldsMapping[x]); if (val==DBNull.Value) val=null; else if (val is int intVal) val=(long)intVal; return new KeyValuePair<string,object>(x,val); }).ToArray();
 						return sri;
 					});
-					_count=dr.Peek() ? dr.GetInt32(2) : 0;
+					_count=dr.Peek()?dr.GetInt32(2):0;
 				}
 				catch
 				{
@@ -569,12 +573,12 @@ namespace Pepi.Find.SqlRepository
 				if ((inFields!=null)&&(inFields.Length!=0))
 				{
 					sb.Append(" and PropertyName in (");
-					bool addComma = false;
+					bool addComma=false;
 					foreach (string s in inFields)
 					{
-						if (!addComma)
+						if (addComma)
 							sb.Append(",");
-						addComma=false;
+						addComma=true;
 						sb.Append(AddParm(s));
 					}
 					sb.Append(")");
@@ -629,6 +633,11 @@ namespace Pepi.Find.SqlRepository
 				if ((_take.HasValue)&&(_take.Value<1))
 					return Task.FromResult((ISearchResult)new EmptySearchResult());
 
+				if (_requestedFields==null)
+					_requestedFields=new string[0];
+				if (_scriptFields==null)
+					_scriptFields=new ScriptField[0];
+				
 				this
 					 .AddSelect(new Tuple<string,string>("IdContent",null))
 					 .AddSelect(new Tuple<string,string>("ValueString","LanguageID"))
@@ -636,14 +645,34 @@ namespace Pepi.Find.SqlRepository
 					 .AddSelect(new Tuple<string,string>("(select d.ValueString from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName='!!Index.Id')","[!!Index.Id!!]"))
 					 .AddSelect(new Tuple<string,string>("(select d.ValueString from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName='!!Index.Name')","[!!Index.Name!!]"))
 					 .AddSelect(new Tuple<string,string>("(select d.ValueString from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName='!!Index.Type')","[!!Index.Type!!]"))
+					 .AddSelect(new Tuple<string,string>("(select replace(stuff((select '@'+d.ValueString from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName='___types' for xml path ('')),1,1,''),'@',char(13)))","[!!Index.Types!!]"))
 					 .AddTable("ContentIndex","c",null)
 					 .AddWhere("PropertyName='LanguageID$$string'");
+				foreach (string fieldName in _requestedFields)
+					this.AddSelect(new Tuple<string,string>($"(select d.{GetValueFieldNameByName(fieldName)} from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})",$"[{fieldName}]"));
+				foreach (ScriptField sf in _scriptFields)
+				{
+					if (sf.Script=="ascropped")
+					{
+						string fieldName=sf.Param("field");
+						try
+						{
+							this.AddSelect(new Tuple<string, string>($"(select substring(d.{GetValueFieldNameByName(fieldName)},1,{sf.Param("length")}) from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})", $"[{sf.Name}]"));
+						}
+						catch
+						{
+							this.AddSelect(new Tuple<string, string>($"('')", $"[{sf.Name}]"));
+						}
+					}
+					else
+						throw new Exception("Unsupported script");
+				}
 
 				string query = GenerateQuery();
 
 				if (_skip.HasValue||_take.HasValue||_sortFields!=null)
 				{
-					List<Tuple<string,string,bool>> sortFields = new List<Tuple<string,string,bool>>();
+					List<Tuple<string,string,bool>> sortFields=new List<Tuple<string,string,bool>>();
 					if (_sortFields.Length==0)
 						sortFields.Add(new Tuple<string,string,bool>("0 [!!sort!!]","[!!sort!!]",false));
 					else
@@ -652,7 +681,7 @@ namespace Pepi.Find.SqlRepository
 						sortFields.AddRange(_sortFields.Select(x =>
 						{
 							string sortFieldName = string.Concat("[!!sort",(ind++).ToString("00"),"!!]");
-							return new Tuple<string,string,bool>($"(select d.{GetValueFieldNameByName(x.PropertyName)} from ContentIndex d where d.IdContent=qIn.IdContent and d.PropertyName={ AddParm(x.PropertyName)}) {sortFieldName}",sortFieldName,x.Descendant);
+							return new Tuple<string,string,bool>($"(select d.{GetValueFieldNameByName(x.PropertyName)} from ContentIndex d where d.IdContent=qIn.IdContent and d.PropertyName={AddParm(x.PropertyName)}) {sortFieldName}",sortFieldName,x.Descendant);
 						}));
 					}
 
@@ -671,7 +700,7 @@ namespace Pepi.Find.SqlRepository
 					query=sb.ToString();
 				}
 
-				return Task.FromResult((ISearchResult)new SearchResult(new PreparedCommand { CommandText=query,Parameters=_parameters.ToDictionary(x => x.Key,x => x.Value) },_dbConnection));
+				return Task.FromResult((ISearchResult)new SearchResult(new PreparedCommand { CommandText=query,Parameters=_parameters.ToDictionary(x => x.Key,x => x.Value) },_dbConnection, _requestedFields.Concat(_scriptFields.Select(x=>x.Name)).ToArray()));
 			}
 
 			ISortInfo[] _sortFields;
@@ -690,6 +719,18 @@ namespace Pepi.Find.SqlRepository
 			public void SetSkipSize(long? skipSize)
 			{
 				_skip=skipSize;
+			}
+
+			string[] _requestedFields;
+			public void SetRequestedFields(IEnumerable<string> fields)
+			{
+				_requestedFields=fields.Where(x=>x!="___types"&&x!="$type"&&x!="Id$$string"&&!x.EndsWith("$$geo")).ToArray();
+			}
+
+			ScriptField[] _scriptFields;
+			public void SetScriptFields(IEnumerable<ScriptField> fields)
+			{
+				_scriptFields=fields.ToArray();
 			}
 
 			internal override string GenerateQuery()
@@ -954,6 +995,16 @@ namespace Pepi.Find.SqlRepository
 				appendAction(val);
 			}
 			return sb;
+		}
+	}
+
+	internal static class ScriptFieldExtensions
+	{
+		internal static string Param(this ScriptField scriptField, string name)
+		{
+			if ((scriptField.Parameters.TryGetValue(name,out object result))&&(result!=null))
+				return result.ToString();
+			throw new Exception($"Script field does not contain {name} parameter value.");
 		}
 	}
 	#endregion extensions

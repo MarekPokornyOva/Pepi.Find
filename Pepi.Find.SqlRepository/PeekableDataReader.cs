@@ -84,8 +84,7 @@ namespace Pepi.Find.SqlRepository
 				return _peekResult;
 			}
 
-			bool res = _inner.Read();
-			return res;
+			return _inner.Read();
 		}
 
 		bool _peekResult;

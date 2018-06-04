@@ -1,23 +1,27 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+VisualStudioVersion = 15.0.27703.2000
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Server", "Pepi.Find.Server\Pepi.Find.Server.csproj", "{674729C5-BBEA-4A30-B2E0-B674A1013319}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pepi.Find.Server", "Pepi.Find.Server\Pepi.Find.Server.csproj", "{674729C5-BBEA-4A30-B2E0-B674A1013319}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Server.Abstract", "Pepi.Find.Server.Abstract\Pepi.Find.Server.Abstract.csproj", "{2280DBA9-F3BF-4295-840F-02C435D6263D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pepi.Find.Server.Abstract", "Pepi.Find.Server.Abstract\Pepi.Find.Server.Abstract.csproj", "{2280DBA9-F3BF-4295-840F-02C435D6263D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.SqlRepository", "Pepi.Find.SqlRepository\Pepi.Find.SqlRepository.csproj", "{BF866F72-E5A2-4084-B7DF-A5B898311627}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pepi.Find.SqlRepository", "Pepi.Find.SqlRepository\Pepi.Find.SqlRepository.csproj", "{BF866F72-E5A2-4084-B7DF-A5B898311627}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WebService.Util", "Pepi.Find.WebService.Util\Pepi.Find.WebService.Util.csproj", "{FC39416A-962A-4EE4-A786-EAB03BC436BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pepi.Find.WebService.Util", "Pepi.Find.WebService.Util\Pepi.Find.WebService.Util.csproj", "{FC39416A-962A-4EE4-A786-EAB03BC436BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WebService", "Pepi.Find.WebService\Pepi.Find.WebService.csproj", "{30B297F7-D5B8-4B05-B838-706CD95523EA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pepi.Find.WebService", "Pepi.Find.WebService\Pepi.Find.WebService.csproj", "{30B297F7-D5B8-4B05-B838-706CD95523EA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.WinDesktop", "Pepi.Find.WinDesktop\Pepi.Find.WinDesktop.csproj", "{2A18F867-AD48-426B-B6F1-13376AD647D5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Direct.Cms", "Pepi.Find.Direct.Cms\Pepi.Find.Direct.Cms.csproj", "{CD5D557B-CBB8-4DE9-81B2-A0BABC7E1E58}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.Direct", "Pepi.Find.Direct\Pepi.Find.Direct.csproj", "{EC870FE9-BEB9-42D4-8758-9539AB63EC29}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.13.Direct", "Pepi.Find.13.Direct\Pepi.Find.13.Direct.csproj", "{8CC2E794-E58B-4E2D-9E50-2727B7EF6D0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pepi.Find.13.Direct.Cms", "Pepi.Find.13.Direct.Cms\Pepi.Find.13.Direct.Cms.csproj", "{578B9A98-DE5C-483E-9577-D537CF9DA5A8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,8 +61,19 @@ Global
 		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC870FE9-BEB9-42D4-8758-9539AB63EC29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CC2E794-E58B-4E2D-9E50-2727B7EF6D0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CC2E794-E58B-4E2D-9E50-2727B7EF6D0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CC2E794-E58B-4E2D-9E50-2727B7EF6D0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CC2E794-E58B-4E2D-9E50-2727B7EF6D0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{578B9A98-DE5C-483E-9577-D537CF9DA5A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{578B9A98-DE5C-483E-9577-D537CF9DA5A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{578B9A98-DE5C-483E-9577-D537CF9DA5A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{578B9A98-DE5C-483E-9577-D537CF9DA5A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {09230CDE-0D11-407F-AFEA-3EDC83DFAD6B}
 	EndGlobalSection
 EndGlobal
