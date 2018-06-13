@@ -334,8 +334,7 @@ namespace Pepi.Find.SqlRepository
 								return null;
 							sb.Clear();
 							if (hiLightRegex==null)
-								//hiLightRegex=new Regex($"(?<q>{Regex.Escape(_highlightQuery)})",RegexOptions.IgnoreCase);
-								hiLightRegex=new Regex(_highlightQuery,RegexOptions.IgnoreCase);
+								hiLightRegex=new Regex($@"[\w]*{Regex.Escape(_highlightQuery)}[\w]*",RegexOptions.IgnoreCase);
 							ProcessHighlight(hlVal,hf,sb,hiLightRegex);
 							if (sb.Length==0)
 								return null;
