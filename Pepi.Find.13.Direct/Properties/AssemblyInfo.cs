@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Pepi.Find.13.Direct")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Pepi.Find is an open source content indexing server reachable with various clients (namely EpiServer). Pepi.Find.Direct enables to host search directly in the EpiServer web site.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("WIndows User")]
-[assembly: AssemblyProduct("Pepi.Find.13.Direct")]
-[assembly: AssemblyCopyright("Copyright © WIndows User 2018")]
+[assembly: AssemblyCompany("MpSoft")]
+[assembly: AssemblyProduct("Pepi.Find")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

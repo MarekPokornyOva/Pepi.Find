@@ -24,13 +24,12 @@ namespace Pepi.Find.Direct
 	public class DirectClient:IClient
 	{
 		IIndexRepository _indexRepository;
-		string _defaultIndex;
 
 		public DirectClient(IIndexRepository indexRepository)
 		{
 			_indexRepository=indexRepository;
 
-			_defaultIndex=Configuration.GetConfiguration()?.DefaultIndex??"Index";
+			DefaultIndex=Configuration.GetConfiguration()?.DefaultIndex??"Index";
 		}
 
 		IClientConventions _conventions;
@@ -39,16 +38,13 @@ namespace Pepi.Find.Direct
 			get { return _conventions??(_conventions=new DefaultConventions(/*this*/)); }
 			set { _conventions=value; }
 		}
-
-		Action<JsonSerializer> _customizeSerializer = new Action<JsonSerializer>(x => { });
-		public Action<JsonSerializer> CustomizeSerializer => _customizeSerializer;
-
-		public string DefaultIndex => _defaultIndex;
+		public Action<JsonSerializer> CustomizeSerializer { get; } = new Action<JsonSerializer>(x => { });
+		public string DefaultIndex { get; }
 
 		public string ServiceUrl => throw new NotImplementedException();
 
 		Settings _settings;
-		static object _settingsLoadLock=new object();
+		static readonly object _settingsLoadLock=new object();
 		public Settings Settings
 		{
 			get
@@ -287,10 +283,8 @@ namespace Pepi.Find.Direct
 		}
 
 		static IEnumerable<KeyValuePair<string, object>> FixScriptFieldValues(IEnumerable<KeyValuePair<string, object>> fieldValues,string[] scriptFieldNames)
-		{
-			return fieldValues.Select(x=>(x.Value==null)&&(Array.IndexOf(scriptFieldNames,x.Key)!=-1)
+			=> fieldValues.Select(x=>(x.Value==null)&&(Array.IndexOf(scriptFieldNames,x.Key)!=-1)
 				? new KeyValuePair<string,object>(x.Key,"") : x);
-		}
 
 		class SortInfo:ISortInfo
 		{
@@ -310,7 +304,7 @@ namespace Pepi.Find.Direct
 			private EmptySearchResult()
 			{}
 
-			static SearchResultItem[] _items=new SearchResultItem[0];
+			static readonly SearchResultItem[] _items=new SearchResultItem[0];
 			public IEnumerable<SearchResultItem> Items => _items;
 
 			public int Count => 0;
@@ -318,7 +312,7 @@ namespace Pepi.Find.Direct
 			public void Dispose()
 			{}
 
-			static EmptySearchResult _instance = new EmptySearchResult();
+			static readonly EmptySearchResult _instance = new EmptySearchResult();
 			internal static EmptySearchResult Instance => _instance;
 		}
 		#endregion Search
@@ -341,7 +335,7 @@ namespace Pepi.Find.Direct
 		#region FindJsonWriter
 		class FindJsonWriter:JsonWriter
 		{
-			Action<string,object> _writter;
+			readonly Action<string,object> _writter;
 			internal FindJsonWriter(Action<string,object> writter)
 			{
 				_writter=writter;

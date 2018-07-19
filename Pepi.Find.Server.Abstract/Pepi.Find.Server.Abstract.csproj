@@ -2,14 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.0</TargetFramework>
-    <Version>0.7.2.1</Version>
-    <Description />
-    <Authors>Marek Pokorny</Authors>
+    <Version>1.0.0.0</Version>
+    <Description>Pepi.Find is an open source content indexing server reachable with various clients (namely EpiServer). Pepi.Find.Server.Abstract contains abstract types implementable by servers and referenceable by clients.</Description>
+    <Authors>Marek Pokorný</Authors>
     <Company>MpSoft</Company>
     <Product>Pepi.Find</Product>
-    <Copyright>Copyright 2017 Marek Pokorny</Copyright>
+    <Copyright></Copyright>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageIconUrl>https://github.com/MarekPokornyOva/Pepi.Find/blob/master/icon.png?raw=true</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/MarekPokornyOva/Pepi.Find</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MarekPokornyOva/Pepi.Find</RepositoryUrl>
+    <PackageTags>EpiServer Find</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
 </Project>

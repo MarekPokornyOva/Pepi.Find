@@ -23,18 +23,14 @@ namespace Pepi.Find.WebService
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-		public void Configure(IApplicationBuilder app,IHostingEnvironment env,ILoggerFactory loggerFactory)
+		public void Configure(IApplicationBuilder app,IHostingEnvironment env,ILoggerFactory loggerFactory, IRequestHandler requestHandler)
 		{
 			loggerFactory.AddConsole();
 
 			if (env.IsDevelopment())
 				app.UseDeveloperExceptionPage();
 
-			app.Run(async (context) =>
-			{
-				await context.RequestServices.GetRequiredService<IRequestHandler>()
-					.ProcessRequestAsync(new WebContext(context));
-			});
+			app.Run(async (context) => await requestHandler.ProcessRequestAsync(new WebContext(context)) );
 		}
 	}
 }

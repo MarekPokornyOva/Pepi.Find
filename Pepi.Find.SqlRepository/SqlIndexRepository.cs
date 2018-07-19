@@ -391,6 +391,26 @@ namespace Pepi.Find.SqlRepository
 						sb.Remove(128,overLen);
 				}
 			}
+
+			/*string _highlightQuery = @"\w";
+			Regex hiLightRegex = new Regex(_highlightQuery);
+			string sent = "dlouhá větička. a něco něcíčko.";
+			string[] res = Enumerable.Range(0, 35).Select(x => TruncateSentence(sent, hiLightRegex, x)).ToArray();
+
+			string TruncateSentence(string text, Regex regex, int maxLen)
+			{
+				if ((text == null) || (text.Length <= maxLen))
+					return text;
+
+				for (int a = maxLen; a >= 0; a--)
+					if (!regex.IsMatch(text[a].ToString()))
+					{
+						maxLen = a;
+						break;
+					}
+
+				return text.Substring(0, maxLen);
+			}*/
 		}
 
 		class EmptySearchResult:ISearchResult
@@ -782,7 +802,14 @@ namespace Pepi.Find.SqlRepository
 			string[] _requestedFields;
 			public void SetRequestedFields(IEnumerable<string> fields)
 			{
-				_requestedFields=fields.Where(x=>x!="___types"&&x!="$type"&&x!="Id$$string"&&!x.EndsWith("$$geo")).ToArray();
+				//_requestedFields=fields.Where(x=>x!="___types"&&x!="$type"&&x!="Id$$string"&&x!="Language.Name$$string"&&!x.EndsWith("$$geo")).ToArray();
+				_requestedFields=fields.Where(x=>
+					!string.Equals(x,"___types",StringComparison.Ordinal)
+					&&!string.Equals(x,"$type",StringComparison.Ordinal)
+					&&!string.Equals(x,"Id$$string",StringComparison.Ordinal)
+					&&!string.Equals(x,"Language.Name$$string",StringComparison.Ordinal)
+					&&!x.EndsWith("$$geo",StringComparison.Ordinal)
+					).ToArray();
 			}
 
 			ScriptField[] _scriptFields;
@@ -1035,6 +1062,107 @@ namespace Pepi.Find.SqlRepository
 			public IDictionary<string,object> Parameters { get; internal set; }
 		}
 		#endregion PreparedCommand
+
+		#region DebugFormat
+#if DEBUG
+		//https://www.freeformatter.com/sql-formatter.html
+		static string DebugFormat(IDbCommand cmd)
+		{
+			/*StringBuilder sb = new StringBuilder();
+			foreach (SqlParameter parm in cmd.Parameters)
+			{
+				sb.Append(sb.Length == 0 ? "declare " : ",")
+					.Append(parm.ParameterName).Append(' ').Append(parm.SqlDbType);
+				if (parm.SqlDbType == SqlDbType.NVarChar)
+					sb.Append('(').Append(parm.Size).Append(')');
+
+				sb.Append('=');
+
+				object val = parm.Value;
+				if ((val == null) || (val == DBNull.Value))
+					val = "null";
+				else if (val is string strVal)
+					val = $"'{strVal}'";
+				else if (val is DateTime dtVal)
+					val = $"'{dtVal.ToString("s", System.Globalization.CultureInfo.InvariantCulture).Replace('T', ' ')}'";
+				else if (val is bool boolVal)
+					val = boolVal ? "1" : "0";
+				sb.Append(val.ToString());
+			}
+
+			sb.AppendLine().AppendLine(cmd.CommandText);
+			return sb.ToString();*/
+
+			StringBuilder sb = new StringBuilder(cmd.CommandText);
+
+			foreach (SqlParameter parm in cmd.Parameters.OfType<SqlParameter>().OrderByDescending(x=>x.ParameterName.Length))
+			{
+				int pos = SbIndexOf(sb, parm.ParameterName, 0, false);
+
+				object val = parm.Value;
+				if ((val == null) || (val == DBNull.Value))
+					val = "null";
+				else if (val is string strVal)
+					val = $"'{strVal}'";
+				else if (val is DateTime dtVal)
+					val = $"'{dtVal.ToString("s", System.Globalization.CultureInfo.InvariantCulture).Replace('T', ' ')}'";
+				else if (val is bool boolVal)
+					val = boolVal ? "1" : "0";
+
+				sb.Remove(pos, parm.ParameterName.Length).Insert(pos, val.ToString());
+			}
+
+			return sb.ToString();
+		}
+
+		/// <summary>
+		/// Returns the index of the start of the contents in a StringBuilder
+		/// </summary>        
+		/// <param name="value">The string to find</param>
+		/// <param name="startIndex">The starting index.</param>
+		/// <param name="ignoreCase">if set to <c>true</c> it will ignore case</param>
+		/// <returns></returns>
+		static int SbIndexOf(StringBuilder sb, string value, int startIndex, bool ignoreCase)
+		{
+			int index;
+			int length = value.Length;
+			int maxSearchLength = (sb.Length - length) + 1;
+
+			if (ignoreCase)
+			{
+				for (int i = startIndex; i < maxSearchLength; ++i)
+				{
+					if (Char.ToLower(sb[i]) == Char.ToLower(value[0]))
+					{
+						index = 1;
+						while ((index < length) && (Char.ToLower(sb[i + index]) == Char.ToLower(value[index])))
+							++index;
+
+						if (index == length)
+							return i;
+					}
+				}
+
+				return -1;
+			}
+
+			for (int i = startIndex; i < maxSearchLength; ++i)
+			{
+				if (sb[i] == value[0])
+				{
+					index = 1;
+					while ((index < length) && (sb[i + index] == value[index]))
+						++index;
+
+					if (index == length)
+						return i;
+				}
+			}
+
+			return -1;
+		}
+#endif
+		#endregion DebugFormat
 	}
 
 	#region extensions
