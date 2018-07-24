@@ -112,7 +112,7 @@ namespace Pepi.Find.SqlRepository
 		#region GetValueFieldName
 		internal static string GetValueFieldNameByValue(object value)
 		{
-			Type valType = value.GetType();
+			Type valType=value.GetType();
 			if ((valType==typeof(string))||(valType==typeof(Guid)))
 				return "ValueString";
 			if ((valType==typeof(int))||(valType==typeof(long)))
@@ -128,22 +128,49 @@ namespace Pepi.Find.SqlRepository
 
 		internal static string GetValueFieldNameByName(string fieldName)
 		{
-			int pos = fieldName.IndexOf("$$");
+			string result=GetValueFieldNameByNameInternal(fieldName);
+			return result??throw new Exception("Undetermined property type");
+		}
+
+		static string GetValueFieldNameByNameInternal(string fieldName)
+		{
+			int pos=fieldName.IndexOf("$$");
 			if (pos==-1)
-				throw new Exception("Undetermined property type");
-			fieldName=fieldName.Substring(pos+2);
+				return null;
+			fieldName=ConsolidateFieldType(fieldName.Substring(pos+2));
 
 			if (fieldName=="string")
 				return "ValueString";
 			if (fieldName=="number")
 				return "ValueInt";
 			/*if (fieldName == typeof(float))
-		return "ValueFloat";*/
+				return "ValueFloat";*/
 			if (fieldName=="date")
 				return "ValueDate";
 			if (fieldName=="bool")
 				return "ValueBool";
-			throw new Exception("Unsupported property type");
+			return null;
+		}
+
+		static bool TryGetValueFieldNameByName(string fieldName, out string result)
+		{
+			result= GetValueFieldNameByNameInternal(fieldName);
+			return result!=null;
+		}
+
+		static string ConsolidateFieldType(string type)
+		{
+			int pos=type.IndexOf(".");
+			return pos==-1?type:type.Substring(0,pos);
+		}
+
+		static string NormalizeValueFieldName(string fieldName)
+		{
+			int pos=fieldName.IndexOf("$$");
+			if (pos==-1)
+				return fieldName;
+			pos=fieldName.IndexOf(".");
+			return pos==-1?fieldName:fieldName.Substring(0,pos);
 		}
 		#endregion GetValueFieldName
 
@@ -696,8 +723,10 @@ namespace Pepi.Find.SqlRepository
 				if ((_take.HasValue)&&(_take.Value<1))
 					return Task.FromResult((ISearchResult)new EmptySearchResult());
 
-				if (_requestedFields==null)
-					_requestedFields=new string[0];
+				string tempString;
+				if (_sortFields==null)
+					_sortFields=new ISortInfo[0];
+				_requestedFields=_requestedFields==null?new string[0]:_requestedFields.Where(x => TryGetValueFieldNameByName(x, out tempString)).ToArray();
 				if (_scriptFields==null)
 					_scriptFields=new ScriptField[0];
 				if (_highlightFields==null)
@@ -714,7 +743,7 @@ namespace Pepi.Find.SqlRepository
 					 .AddTable("ContentIndex","c",null)
 					 .AddWhere("PropertyName='LanguageID$$string'");
 				foreach (string fieldName in _requestedFields)
-					this.AddSelect(new Tuple<string,string>($"(select d.{GetValueFieldNameByName(fieldName)} from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})",$"[{fieldName}]"));
+					this.AddSelect(new Tuple<string,string>($"(select d.{GetValueFieldNameByName(fieldName)} from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(NormalizeValueFieldName(fieldName))})",$"[{fieldName}]"));
 				foreach (ScriptField sf in _scriptFields)
 				{
 					if (sf.Script=="ascropped")
@@ -722,7 +751,7 @@ namespace Pepi.Find.SqlRepository
 						string fieldName=sf.Param("field");
 						try
 						{
-							this.AddSelect(new Tuple<string,string>($"(select substring(d.{GetValueFieldNameByName(fieldName)},1,{sf.Param("length")}) from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})", $"[{sf.Name}]"));
+							this.AddSelect(new Tuple<string,string>($"(select substring(d.{GetValueFieldNameByName(fieldName)},1,{sf.Param("length")}) from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(NormalizeValueFieldName(fieldName))})", $"[{sf.Name}]"));
 						}
 						catch //provide empty string for unsupported data types (when GetValueFieldNameByName throws an exception)
 						{
@@ -737,7 +766,7 @@ namespace Pepi.Find.SqlRepository
 					string fieldName=hf.FieldName;
 					try
 					{
-						this.AddSelect(new Tuple<string,string>($"(select d.{GetValueFieldNameByName(fieldName)} from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(fieldName)})",$"[{GetHiLightFieldName(fieldName)}]"));
+						this.AddSelect(new Tuple<string,string>($"(select d.{GetValueFieldNameByName(fieldName)} from ContentIndex d where d.IdContent=c.IdContent and d.PropertyName={AddParm(NormalizeValueFieldName(fieldName))})",$"[{GetHiLightFieldName(fieldName)}]"));
 						return new Tuple<string,string,string>(hf.FieldName,string.Concat(hf.PreTags??new string[0]),string.Concat(hf.PostTags??new string[0]));
 					}
 					catch

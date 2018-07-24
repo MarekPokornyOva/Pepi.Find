@@ -136,7 +136,7 @@ namespace Pepi.Find.Server
 				return;
 			}
 
-			using (ISearchResult data = await ParseQueryFilter(null,null,null,queryFilter,filter).ExecuteAsync())
+			using (ISearchResult data = await ParseQueryFilter(null,null,null,null,null,null,null,queryFilter,filter).ExecuteAsync())
 
 			//serialize to parsed as EPiServer.Find.Api.DeleteByQueryResult; Indices are read by EPiServer.Find.Api.IndicesResultConverter
 			//{"ok":true,"_indices":{"<index_name>":{"_shards":{"total":2,"successful":2,"failed":0}}}}
@@ -181,7 +181,6 @@ namespace Pepi.Find.Server
 				AddQueryPart(jtb.SelectToken("filter"));
 			}
 
-			JArray sort = o.SelectToken("sort") as JArray;
 			JValue skip = o.SelectToken("from") as JValue;
 			JValue take = o.SelectToken("size") as JValue;
 
@@ -198,15 +197,31 @@ namespace Pepi.Find.Server
 			if ((_options.SearchDefaultCount.HasValue)&&(!takeVal.HasValue))
 				takeVal=_options.SearchDefaultCount;
 
-			SortInfo[] sortFields = sort.Values().Select(x =>
+			SortInfo[] sortFields=(o.SelectToken("sort") as JArray)?.Values().Select(x=>
 			{
-				JProperty jProp = (JProperty)x;
+				JProperty jProp=(JProperty)x;
 				return new SortInfo { PropertyName=jProp.Name,Descendant=(jProp.Value.SelectToken("order") as JValue)?.Value as string=="desc" };
 			}).ToArray();
+			string[] requestedFields=(jtb.SelectToken("query.query_string.fields") as JArray)?.Values().Select(x=>((JValue)x).Value as string).Distinct().ToArray();
+			IEnumerable<ScriptField> scriptFields=(o.SelectToken("script_fields") as JObject)?.Properties()?.Select(x=>
+			{
+				JObject val=(JObject)x.Value;
+				return new ScriptField(x.Name, 
+					(val["script"] as JValue)?.Value as string, 
+					(val["lang"] as JValue)?.Value as string, 
+					(val["params"] as JObject)?.Properties().ToDictionary(par=>par.Name,par=>(par.Value as JValue)?.Value));
+			})?.ToArray();
+			string highlightsQuery=(jtb.SelectToken("query.query_string.query") as JValue)?.Value as string;
+			IEnumerable<HighlightFieldRequest> highlightFields=(o.SelectToken("highlight.fields") as JObject)?.Properties()?.Select(x=>
+			{
+				JObject val=(JObject)x.Value;
+				return new HighlightFieldRequest(x.Name,(val["pre_tags"] as JArray)?.Values().Select(tv=>(tv as JValue)?.Value as string),(val["post_tags"] as JArray)?.Values().Select(tv=>(tv as JValue)?.Value as string));
+			}).ToArray();
+			IEnumerable<string> partialFields=(o.SelectToken("partial_fields") as JObject)?.Properties()?.Select(x=>x.Name).ToArray();
 
 			IEnumerable<JProperty> facets = (o.SelectToken("facets") as JObject)?.Properties();
 
-			using (ISearchResult data = await ParseQueryFilter(skipVal,takeVal,sortFields,queryParts.Where(x => x!=null).ToArray()).ExecuteAsync())
+			using (ISearchResult data = await ParseQueryFilter(skipVal,takeVal,sortFields,requestedFields,scriptFields,highlightsQuery,highlightFields,queryParts.Where(x => x!=null).ToArray()).ExecuteAsync())
 			using (TextWriter tw = new StreamWriter(response.Body))
 			using (JsonWriter jw = new JsonTextWriter(tw))
 			{
@@ -266,13 +281,27 @@ namespace Pepi.Find.Server
 									using (jw.WriteObject("fields"))
 									{
 										jw
-												  .WriteProperty("ContentLink.ID$$number",item.Document.Id)
-												  .WriteProperty("Language.Name$$string",item.Document.LanguageName);
+											.WriteProperty("ContentLink.ID$$number",item.Document.Id)
+											.WriteProperty("PageLink.ID$$number",item.Document.Id)
+											.WriteProperty("Language.Name$$string",item.Document.LanguageName);
 
 										using (jw.WriteArray("___types"))
 											foreach (string type in item.Document.Types)
 												jw.WriteValue(type);
+
+										foreach (ScriptField scriptField in scriptFields)
+											jw.WriteProperty(scriptField.Name,item.Document.FieldValues.First(x=>x.Key==scriptField.Name).Value?.ToString()??"");
+
+										foreach (string partialField in partialFields)
+											using (jw.WriteObject(partialField.EndsWith(".*")?partialField.Substring(0,partialField.Length-2):partialField))
+												;
 									}
+
+									using (jw.WriteObject("highlight"))
+										foreach (SearchFieldHighlights srh in item.Highlights.Fields)
+											using (jw.WriteArray(srh.FieldName))
+												foreach (string value in srh.Highlights)
+													jw.WriteValue(value);
 								}
 					}
 				}
@@ -336,15 +365,22 @@ namespace Pepi.Find.Server
 		#endregion ReadJson
 
 		#region ParseQueryFilter & WriteFilter
-		ISearchQueryBuilder ParseQueryFilter(long? skip,long? take,SortInfo[] sort,params JObject[] filters)
+		ISearchQueryBuilder ParseQueryFilter(long? skip,long? take,SortInfo[] sort,string[] requestedFields,IEnumerable<ScriptField> scriptFields,string highlightsQuery,IEnumerable<HighlightFieldRequest> highlightsFields,params JObject[] filters)
 		{
 			ISearchQueryBuilder qb = _indexRepository.CreateSearchQueryBuilder();
 			foreach (JObject filter in filters)
 				WriteFilter(filter,qb);
 
+			if (requestedFields!=null)
+				qb.SetRequestedFields(requestedFields);
+			if (scriptFields!=null)
+				qb.SetScriptFields(scriptFields);
 			qb.SetSkipSize(skip);
 			qb.SetResultSize(take);
-			qb.AddSort(sort);
+			if (sort!=null)
+				qb.AddSort(sort);
+			if (highlightsFields!=null)
+				qb.SetHighlights(highlightsQuery,highlightsFields);
 
 			return qb;
 		}
