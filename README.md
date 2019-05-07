@@ -1,4 +1,9 @@
 # Pepi.Find
+
+[![Package Version](https://img.shields.io/nuget/v/Pepi.Find.Direct.svg)](https://www.nuget.org/packages/Pepi.Find.Direct/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Pepi.Find.Direct.svg)](https://www.nuget.org/packages/Pepi.Find.Direct/)
+[![License](https://img.shields.io/github/license/MarekPokornyOva/Pepi.Find.svg)](https://github.com/MarekPokornyOva/Pepi.Find/blob/master/LICENSE)
+
 Pepi.Find is an open source content indexing server reachable with various clients (namely EpiServer).
 
 ### Description:
